@@ -1,0 +1,47 @@
+Feature: Atualização diária da qualidade dos itens da loja Gilded Rose
+  Para manter o inventário consistente
+  Como sistema de gestão da loja
+  Quero atualizar diariamente o prazo de venda e a qualidade dos itens segundo as regras de negócio
+
+  Scenario: Atualizar item comum antes da data de venda (happy path)
+    Given existe um item comum chamado "foo" com prazo de venda em 10 dias e qualidade 20
+    When o sistema atualiza a qualidade dos itens
+    Then o prazo de venda do item deve ser decrementado para 9 dias
+    And a qualidade do item deve ser decrementada para 19
+
+  Scenario: Impedir que a qualidade de um item comum fique negativa
+    Given existe um item comum chamado "foo" com prazo de venda em 5 dias e qualidade 0
+    When o sistema atualiza a qualidade dos itens
+    Then a qualidade do item deve permanecer 0
+    And o prazo de venda deve ser decrementado para 4 dias
+
+  Scenario: Aged Brie aumenta de qualidade e respeita o limite máximo
+    Given existe um item "Aged Brie" com prazo de venda em 1 dia e qualidade 49
+    When o sistema atualiza a qualidade dos itens
+    Then o prazo de venda do item deve ser decrementado para 0 dias
+    And a qualidade do item deve ser incrementada para no máximo 50
+
+  Scenario: Backstage pass aumenta qualidade em 3 quando faltam 5 dias ou menos
+    Given existe um item "Backstage passes to a TAFKAL80ETC concert" com prazo de venda em 5 dias e qualidade 20
+    When o sistema atualiza a qualidade dos itens
+    Then o prazo de venda do item deve ser decrementado para 4 dias
+    And a qualidade do item deve ser incrementada para 23
+
+  Scenario: Backstage pass perde todo o valor após o show
+    Given existe um item "Backstage passes to a TAFKAL80ETC concert" com prazo de venda em 0 dias e qualidade 30
+    When o sistema atualiza a qualidade dos itens
+    Then o prazo de venda do item deve ser decrementado para -1 dias
+    And a qualidade do item deve ser ajustada para 0
+
+  Scenario: Sulfuras nunca altera qualidade ou prazo de venda
+    Given existe um item "Sulfuras, Hand of Ragnaros" com prazo de venda em 0 dias e qualidade 80
+    When o sistema atualiza a qualidade dos itens
+    Then o prazo de venda do item deve permanecer 0
+    And a qualidade do item deve permanecer 80
+
+  # Exemplo de “falha de infraestrutura” num contexto mais amplo
+  Scenario: Falha ao carregar itens do inventário
+    Given o repositório de itens está indisponível
+    When o sistema tenta buscar os itens para atualizar a qualidade
+    Then o sistema deve registrar um erro de infraestrutura
+    And não deve tentar atualizar a qualidade de nenhum item
